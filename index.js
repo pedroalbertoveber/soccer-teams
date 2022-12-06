@@ -24,6 +24,6 @@ app.use(express.static("public"));
 
 /* routes */
 app.use("/teams", TeamRoutes);
-app.use("players", PlayerRoutes);
+app.use("/players", PlayerRoutes);
 
 app.listen(5000);
