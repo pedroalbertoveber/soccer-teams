@@ -79,6 +79,17 @@ module.exports = class TeamController {
     }
   }
 
+  static async getAllTeams(req, res) {
+    const teams = await Team.find().sort("-createdAt");
+
+    if (teams.length === 0) {
+      res.status(200).json({ message: "Nenhum time cadastrado!" });
+      return;
+    }
+
+    res.status(200).json({ teams: teams });
+  }
+
   static async login (req, res) {
     const { email, password } = req.body;
 

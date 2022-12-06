@@ -7,6 +7,7 @@ const { imageUpload } = require("../helpers/image-upload");
 
 router.post("/register", TeamController.registerTeam);
 router.post("/login", TeamController.login);
+router.get("/", TeamController.getAllTeams);
 router.get("/checkteam", TeamController.checkTeam);
 router.get("/:id", TeamController.getTeamById);
 router.patch("/edit/:id", verifyToken, imageUpload.single("image"), TeamController.editTeam)
