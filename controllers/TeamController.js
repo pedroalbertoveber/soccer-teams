@@ -210,8 +210,10 @@ module.exports = class TeamController {
     }
 
     /* change password */
-    if(password !== confirmpassword) {
+    if(password !== confirmpassword && password !== "") {
       res.status(422).json({ message: "As senhas não conferem!" });
+      return;
+
     } else if (password === confirmpassword && password != null) {
 
       /* creating a new password */
@@ -220,6 +222,7 @@ module.exports = class TeamController {
 
       team.password = hashPassword;
     }
+  
 
     /* pre updated data */
     team.name = name;

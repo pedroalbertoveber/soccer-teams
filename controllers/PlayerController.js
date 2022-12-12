@@ -163,11 +163,6 @@ module.exports = class PlayerController {
       return;
     }
 
-    if(!image) {
-      res.status(422).json({ message: "A imagem do jogador é obrigatória" });
-      return;
-    }
-
     /* check if player already exists on this team or another one */
     const alreadyExists = await Player.findOne({ name: name, position: position });
     if(name !== player.name && alreadyExists && String(alreadyExists.team._id) === String(team._id)) {
@@ -178,15 +173,29 @@ module.exports = class PlayerController {
       return;
     }
 
+    let updatedPlayer;
+    
     /* updating player */
-    const updatedPlayer = {
-      name,
-      age,
-      height,
-      position,
-      image: image.filename,
-      available: true,
-    };
+
+    if(!image) {
+      updatedPlayer = {
+        name,
+        age,
+        height,
+        position,
+        image: player.image,
+        available: true,
+      };
+    } else {
+      updatedPlayer = {
+        name,
+        age,
+        height,
+        position,
+        image: image.filename,
+        available: true,
+      };
+    }
 
     await Player.findByIdAndUpdate(id, updatedPlayer);
     res.status(200).json({ message: "Jogador atualizado com sucesso!" });
@@ -261,6 +270,7 @@ module.exports = class PlayerController {
       name: team.name,
       country: team.country,
       league: team.league,
+      image: team.image,
     };
 
     try {
@@ -413,8 +423,9 @@ module.exports = class PlayerController {
     const borrowerTeam = player.borrower.name;
 
     player.borrower = null;
+
     await Player.findByIdAndUpdate(id, player);
-    res.status(200).json({ message: `Você recusou a proposta de oferta do ${borrowerTeam}`});
+    res.status(200).json({ message: `Você recusou a proposta do ${borrowerTeam}`});
   }
 
   static async deletePlayer (req, res) {
@@ -448,5 +459,82 @@ module.exports = class PlayerController {
 
     await Player.findByIdAndDelete(id);
     res.status(200).json({ message: "Jogador excluído com sucesso!" });
+  }
+
+  static async getLoanRequests (req, res) {
+    const token = getToken(req);
+    const team = await getTeamByToken(token);
+
+    if(!team) {
+      res.status(422).json({ message: "Você precisa estar logado para ver suas solicitações de empréstimo "});
+      return;
+    }
+
+    try {
+      const players = await Player.find({"borrower._id": team._id, available: true}).lean();
+      res.status(200).json({ players: players });
+    }catch (err) {
+      res.status(500).json({ message: "Não foi possível realizar a sua solicitação" });
+      return;
+    }
+  }
+
+  static async getMyLoanRequests (req, res) {
+    const token = getToken(req);
+    const team = await getTeamByToken(token);
+
+    if(!team) {
+      res.status(422).json({ message: "Você precisa ter um time para verificar suas solicitações" });
+      return;
+    }
+
+    const players = await Player.find({ ["team._id"]: team._id, available: true });
+    const myLoanRequests = players.filter(player => player.borrower !== undefined && player.borrower !== null);
+
+    if(myLoanRequests.length === 0) {
+      res.status(200).json({ message: "Você não possui nenhum jogador avançando em negociações" });
+      return;
+    }
+
+    res.status(200).json({ players: myLoanRequests });
+    return;
+  }
+
+  static async getMyConcludedLoans (req, res) {
+    const token = getToken(req);
+    const team = await getTeamByToken(token);
+
+    if (!team) {
+      res.status(422).json({ message: "Você precisa ter um clube para consultar!" });
+      return;
+    }
+
+    const players = await Player.find({ ["team._id"]: team._id, available: false });
+
+    if (players.length === 0) {
+      res.status(200).json({ message: "Você não possui nenhum jogador empresatado!" });
+      return;
+    }
+
+    res.status(200).json({ players: players });
+  }
+
+  static async getMyLoanPlayers (req, res) {
+    const token = getToken(req);
+    const team = await getTeamByToken(token);
+
+    if (!team) {
+      res.status(422).json({ message: "Você precisa ter um clube para consultar!" });
+      return;
+    }
+
+    const players = await Player.find({ ["borrower._id"]: team._id, available: false });
+
+    if (players.length === 0) {
+      res.status(200).json({ message: "Você não possui nenhum jogador contratado!" });
+      return;
+    }
+
+    res.status(200).json({ players: players });
   }
 };
